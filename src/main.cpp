@@ -11,16 +11,25 @@ byte packet[] = {
     0xd2, // Horizontal offset:
     0x00, // Xpx right
     0xd3, // Vertical offset:
-    0x00, // Ypx down (not working.. ?)
+    0x03, // Ypx down (3 is top for pixel font)
     0xD4, // Font:
-    0x60, // 0x60 = 7px, 0x62 = 7px wide, 0x63 = 12px etc etc, 0x77 = pixel control
-    0x48, // H
-    0x45, // E
-    0x4c, // L
-    0x4c, // L
-    0x4f, // O
-          // 0xcd,  // Checksum
-          // 0xff   // Stop byte
+    0x77, // 0x60 = 7px text, 0x62 = 7px wide, etc etc, 0x77 = pixel control
+          // 0x48, // H
+          // 0x45, // E
+          // 0x4c, // L
+          // 0x4c, // L
+          // 0x4f, // O
+    0x2a,
+    0x20,
+    0x31,
+    0x2e,
+    //
+    0x2a,
+    0x20,
+    0x31,
+    0x2e,
+    // 0xcd,  // Checksum
+    // 0xff   // Stop byte
 };
 int length = sizeof(packet) / sizeof(packet[0]);
 byte calculateChecksum(byte byteArray[], int length)
@@ -69,7 +78,12 @@ void setup()
 bool sendpacketState = false; // packet is sent in setup, so loop starts with packet2
 void loop()
 {
-  delay(2000);
-  Serial.println("Sending packet 1...");
-  sendDisplayPacket(packet, length);
+  // for vertical offset 0x00 through 0x0a
+  for (int i = 0; i < 14; i++)
+  {
+    packet[9] = i;
+    sendDisplayPacket(packet, length);
+    delay(1000);
+    Serial.println("vertical offset: " + String(i));
+  }
 }
