@@ -1,13 +1,14 @@
 #include <Arduino.h>
-#include <HardwareSerial.h>
-HardwareSerial RS485(1); // Use UART1
+// Tested with wemos d1 mini
+// Connected wemos tx to max485 di
 byte packet[] = {
-    0x0b, // Sign address
+    // 0xff,  // Starting byte, sent separately below to not include in checksum
+    0x00, // Sign address
     0xa2, // Always a2
     0xd0, // Display width
-    0x70, // 112px
+    0x1c, // 28px
     0xd1, // Display height
-    0x10, // 0px
+    0xd0, // 13px
     0xd2, // Horizontal offset
     0x00, // 0px right
     0xd3, // Vertical offset
@@ -20,7 +21,9 @@ byte packet[] = {
     0x4d, // M
     0x50, // P
     0x4c, // L
-    0x45  // E
+    0x45, // E
+          // 0xcd,  // Checksum
+          // 0xff   // Stop byte
 };
 int length = sizeof(packet) / sizeof(packet[0]);
 byte calculateChecksum(byte byteArray[], int length)
@@ -30,58 +33,51 @@ byte calculateChecksum(byte byteArray[], int length)
   {
     sum += byteArray[i];
   }
-  return (byte)(sum % 256);
+  return (byte)(sum % 256); // Return checksum as byte (mod 256)
 }
-void setup()
+
+void sendDisplayPacket(byte packet[], int packetLength)
 {
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH); // LED off
-  // Initialize UART1: 4800 baud, 8N1, RX=GPIO6, TX=GPIO7
-  RS485.begin(4800, SERIAL_8N1, 6, 7);
-  delay(3000);                 // Give sign time to reset
-  RS485.write(0xff);           // Start byte
-  RS485.write(packet, length); // Packet payload
-  byte checksum = calculateChecksum(packet, length);
-  // Handle special checksum cases
+  Serial1.write(0xff); // Starting byte
+  Serial1.write(packet, packetLength);
+  byte checksum = calculateChecksum(packet, packetLength);
   if (checksum == 0xff)
   {
-    RS485.write(0xfe);
-    RS485.write(0x01);
+    Serial1.write(0xfe);
+    Serial1.write(0x01);
   }
   else if (checksum == 0xfe)
   {
-    RS485.write(0xfe);
-    RS485.write(0x00);
+    Serial1.write(0xfe);
+    Serial1.write(0x00);
   }
   else
   {
-    RS485.write(checksum);
+    Serial1.write(checksum);
   }
-  RS485.write(0xff); // Stop byte
+  Serial1.write(0xff); // Stop byte
+  Serial1.flush();
 }
-void firstDotOne()
+
+void setup()
 {
-  RS485.write(0xff); // Start byte
-  RS485.write(0x0b); // Sign address
-  RS485.write(0x00); // Command
-  RS485.write(0x01); // First dot on
-  RS485.write(0xff); // Stop byte
+  Serial.begin(115200); // For debugging
+  Serial1.begin(4800, SERIAL_8N1, 6, 7);
+  // Using default UART1 pins for esp32-c6-supermini for now.
+  while (!Serial1)
+  {
+    ; // wait for serial port to connect.
+  }
+  delay(2000); // Makes communication much more robust
+  sendDisplayPacket(packet, length);
 }
-void secondDotOne()
-{
-  RS485.write(0xff); // Start byte
-  RS485.write(0x0b); // Sign address
-  RS485.write(0x00); // Command
-  RS485.write(0x02); // Second dot on
-  RS485.write(0xff); // Stop byte
-}
+
+bool sendpacketState = false; // packet is sent in setup, so loop starts with packet2
+
 void loop()
 {
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
-  secondDotOne();
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(1000);
-  firstDotOne();
-  delay(1000);
+  delay(2000);
+
+  Serial.println("Sending packet 1...");
+  sendDisplayPacket(packet, length);
 }
