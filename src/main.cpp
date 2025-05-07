@@ -1,27 +1,24 @@
 #include <Arduino.h>
-// Tested with wemos d1 mini
-// Connected wemos tx to max485 di
+// https://github.com/Nosen92/maskin-flipdot/blob/main/protocol.md
 byte packet[] = {
     // 0xff,  // Starting byte, sent separately below to not include in checksum
     0x00, // Sign address
     0xa2, // Always a2
-    0xd0, // Display width
+    0xd0, // Display width:
     0x1c, // 28px
-    0xd1, // Display height
+    0xd1, // Display height:
     0xd0, // 13px
-    0xd2, // Horizontal offset
-    0x00, // 0px right
-    0xd3, // Vertical offset
-    0x00, // 0px down
-    0xD4, // Font
-    0x60, // 13px font
+    0xd2, // Horizontal offset:
+    0x00, // Xpx right
+    0xd3, // Vertical offset:
+    0x00, // Ypx down (not working.. ?)
+    0xD4, // Font:
+    0x60, // 0x60 = 7px, 0x62 = 7px wide, 0x63 = 12px etc etc, 0x77 = pixel control
+    0x48, // H
     0x45, // E
-    0x58, // X
-    0x41, // A
-    0x4d, // M
-    0x50, // P
     0x4c, // L
-    0x45, // E
+    0x4c, // L
+    0x4f, // O
           // 0xcd,  // Checksum
           // 0xff   // Stop byte
 };
@@ -35,7 +32,6 @@ byte calculateChecksum(byte byteArray[], int length)
   }
   return (byte)(sum % 256); // Return checksum as byte (mod 256)
 }
-
 void sendDisplayPacket(byte packet[], int packetLength)
 {
   Serial1.write(0xff); // Starting byte
@@ -58,7 +54,6 @@ void sendDisplayPacket(byte packet[], int packetLength)
   Serial1.write(0xff); // Stop byte
   Serial1.flush();
 }
-
 void setup()
 {
   Serial.begin(115200); // For debugging
@@ -71,13 +66,10 @@ void setup()
   delay(2000); // Makes communication much more robust
   sendDisplayPacket(packet, length);
 }
-
 bool sendpacketState = false; // packet is sent in setup, so loop starts with packet2
-
 void loop()
 {
   delay(2000);
-
   Serial.println("Sending packet 1...");
   sendDisplayPacket(packet, length);
 }
