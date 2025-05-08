@@ -9,9 +9,9 @@ byte packet1[] = {
     0xd1, // Display height:
     13,   // 13px
     0xd2, // Horizontal offset:
-    0x00, // Xpx right
+    0,    // Xpx right
     0xd3, // Vertical offset:
-    0x03, // Ypx down (3 is top for pixel font)
+    3,    // Ypx down (3 is top for pixel font)
     0xD4, // Font:
     0x77, // 0x60 = 7px text, 0x62 = 7px wide, etc etc, 0x77 = pixel control
     // 0x48, // H
@@ -43,9 +43,9 @@ byte packet2[] = {
     0xd1, // Display height:
     13,   // 13px
     0xd2, // Horizontal offset:
-    0x00, // Xpx right
+    0,    // Xpx right
     0xd3, // Vertical offset:
-    0x03, // Ypx down (3 is top for pixel font)
+    3,    // Ypx down (3 is top for pixel font)
     0xD4, // Font:
     0x77, // 0x60 = 7px text, 0x62 = 7px wide, etc etc, 0x77 = pixel control
     // 0x48, // H
@@ -56,15 +56,41 @@ byte packet2[] = {
     // 1st - 1, 2nd - 2, 3rd - 4, 4th - 8, 5th - 16.
     // Add these up binary style then plus 32 to get the character code
     // all 5 pixels on =  0b11111 + 32
-    32 + 0b10000,
-    32 + 0b01000,
-    32 + 0b00100,
-    32 + 0b00010,
-    32 + 0b00001,
-    32 + 0b00010,
-    32 + 0b00100,
-    32 + 0b01000,
-    32 + 0b10000,
+    32 + 0b10101,
+    32 + 0b10101,
+    32 + 0b10101,
+    32 + 0b10101,
+    32 + 0b10101,
+    // 0xcd,   // Checksum - sent separately as not included in checksum
+    // 0xff    // Stop byte - Sent separately as not included in checksum
+};
+byte packet3[] = {
+    // 0xff,  // Start byte - Sent separately as not included in checksum
+    0x00, // Sign address
+    0xa2, // Always a2
+    0xd0, // Display width:
+    28,   // 28px (but doesn't seem to matter)
+    0xd1, // Display height:
+    13,   // 13px
+    0xd2, // Horizontal offset:
+    5,    // Xpx right
+    0xd3, // Vertical offset:
+    3,    // Ypx down (3 is top for pixel font)
+    0xD4, // Font:
+    0x77, // 0x60 = 7px text, 0x62 = 7px wide, etc etc, 0x77 = pixel control
+    // 0x48, // H
+    // 0x45, // E
+    // 0x4c, // L
+    // 0x4c, // L
+    // A column of 5 pixels is represented by a single byte
+    // 1st - 1, 2nd - 2, 3rd - 4, 4th - 8, 5th - 16.
+    // Add these up binary style then plus 32 to get the character code
+    // all 5 pixels on =  0b11111 + 32
+    32 + 0b10101,
+    32 + 0b10101,
+    32 + 0b10101,
+    32 + 0b10101,
+    32 + 0b10101,
     // 0xcd,   // Checksum - sent separately as not included in checksum
     // 0xff    // Stop byte - Sent separately as not included in checksum
 };
@@ -79,9 +105,8 @@ byte calculateChecksum(byte byteArray[], int length)
   }
   return (byte)(sum % 256); // Return checksum as byte (mod 256)
 }
-void sendDisplayPacket(byte packet[])
+void sendDisplayPacket(byte packet[], int packetLength)
 {
-  int packetLength = sizeof(packet) / sizeof(packet[0]);
   Serial1.write(0xff); // Starting byte
   Serial1.write(packet, packetLength);
   byte checksum = calculateChecksum(packet, packetLength);
@@ -115,9 +140,12 @@ void setup()
 void loop()
 {
   Serial.println("Packet 1");
-  sendDisplayPacket(packet1);
+  sendDisplayPacket(packet1, sizeof(packet1) / sizeof(packet1[0]));
   delay(4000);
   Serial.println("Packet 2");
-  sendDisplayPacket(packet2);
+  sendDisplayPacket(packet2, sizeof(packet2) / sizeof(packet2[0]));
+  delay(4000);
+  Serial.println("Packet 3");
+  sendDisplayPacket(packet3, sizeof(packet3) / sizeof(packet3[0]));
   delay(4000);
 }
